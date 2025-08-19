@@ -1,0 +1,61 @@
+pipeline {
+    agent { label 'ubuntu' }
+    environment {
+        REGISTRY_URL = 'vcr.vngcloud.vn'
+        IMAGE_NAME = '106404-phx-smartuni/demo-app'
+        IMAGE_TAG = "1.0.0"
+        DOCKER_CREDENTIALS = credentials('vng-docker-registry')
+        GIT_CREDENTIALS = credentials('gitlab-phx-pull')
+    }
+    stages {
+        stage('Clone repository') {
+            steps {
+                git url: 'https://gitlab.phx-smartuni.com/root/golang-base.git',
+                    branch: "${env.BRANCH_NAME}",
+                    credentialsId: 'gitlab-phx-pull'
+            }
+        }
+        stage('Copy config file') {
+            steps {
+                sh 'cp configs/config.yaml.sample configs/config.yaml'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("${REGISTRY_URL}/${IMAGE_NAME}:${env.BRANCH_NAME}-${IMAGE_TAG}", "-f docker/Dockerfile .")
+                }
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry("https://${REGISTRY_URL}", 'vng-docker-registry') {
+                        docker.image("${REGISTRY_URL}/${IMAGE_NAME}:${env.BRANCH_NAME}-${IMAGE_TAG}").push()
+                    }
+                }
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    if (env.BRANCH_NAME == 'production') {
+                        withCredentials([file(credentialsId: 'kube-production', variable: 'KUBECONFIG')]) {
+                            withEnv(["KUBECONFIG=${env.KUBECONFIG}"]) {
+                                sh 'kubectl config use-context deployer-context'
+                                sh "helm upgrade --install demo-api ./helm-chart --set image.repository=${REGISTRY_URL}/${IMAGE_NAME},image.tag=${env.BRANCH_NAME}-${IMAGE_TAG} --namespace production"
+                            }
+                        }
+                    } else {
+                        withCredentials([file(credentialsId: 'kube-staging', variable: 'KUBECONFIG')]) {
+                            withEnv(["KUBECONFIG=${env.KUBECONFIG}"]) {
+                                sh 'kubectl config use-context deployer-context'
+                                sh "helm upgrade --install demo-api ./helm-chart --set image.repository=${REGISTRY_URL}/${IMAGE_NAME},image.tag=${env.BRANCH_NAME}-${IMAGE_TAG} --namespace staging"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
