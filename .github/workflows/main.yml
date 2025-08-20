@@ -18,7 +18,7 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}  # Địa chỉ server (lấy từ GitHub Secrets)
           username: ${{ secrets.SERVER_USER }}  # Tên người dùng SSH (lấy từ GitHub Secrets)
-          key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}  # SSH private key để đăng nhập (lấy từ GitHub Secrets)
+          key: ${{ secrets.SERVER_SSH_KEY }}  # SSH private key để đăng nhập (lấy từ GitHub Secrets)
           port: 22  # Cổng mặc định cho SSH
           script: |
             bash /usr/local/bin/deploy_mini.sh
