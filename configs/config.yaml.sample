@@ -6,7 +6,7 @@ database:
   user: root
   password: dev
   protocol: tcp
-  host: localhost
+  host: 54.151.187.150
   port: 5432
   schema: database
 redis:

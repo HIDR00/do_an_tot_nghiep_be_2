@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	httpConfig "mono-base/cmd/http/config"
+	"mono-base/cmd/http/controllers/app_version"
 	"mono-base/cmd/http/controllers/user"
 	_ "mono-base/cmd/http/docs"
 	"mono-base/cmd/http/middleware"
@@ -18,14 +19,15 @@ import (
 )
 
 type App struct {
-	Name             string
-	Version          string
-	ConfigFilePath   string
-	ConfigFile       string
-	router           *gin.Engine
-	restConfig       httpConfig.RestServer
-	userControllerV1 user.Controller
-	userControllerV2 user.Controller
+	Name                   string
+	Version                string
+	ConfigFilePath         string
+	ConfigFile             string
+	router                 *gin.Engine
+	restConfig             httpConfig.RestServer
+	userControllerV1       user.Controller
+	userControllerV2       user.Controller
+	appVersionControllerV1 app_version.Controller
 }
 
 func (a *App) initFlag() {
@@ -65,18 +67,26 @@ func (a *App) registerRoute() {
 
 	// Swagger route
 	a.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	user.RegisterRoutesV1(a.router, a.userControllerV1)
-	user.RegisterRoutesV2(a.router, a.userControllerV2)
+	v1Group := a.router.Group("/v1")
+	{
+		user.RegisterRoutesV1(v1Group, a.userControllerV1)
+		app_version.RegisterRoutesV1(v1Group, a.appVersionControllerV1)
+	}
+	v2Group := a.router.Group("/v2")
+	{
+		user.RegisterRoutesV2(v2Group, a.userControllerV2)
+	}
 }
 
 func inject(
 	app *App,
 	userControllerV1 *user.ControllerV1,
 	userControllerV2 *user.ControllerV2,
+	appVersionControllerV1 *app_version.ControllerV1,
 ) error {
 	app.userControllerV1 = userControllerV1
 	app.userControllerV2 = userControllerV2
+	app.appVersionControllerV1 = appVersionControllerV1
 	return nil
 }
 
