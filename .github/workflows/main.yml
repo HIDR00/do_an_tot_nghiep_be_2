@@ -2,10 +2,8 @@ name: Deploy Go Backend to Windows Server
 
 on:
   pull_request_target:
-    branches:
-      - staging
-    types:
-      - closed
+    branches: [staging]
+    types: [closed]
 
 jobs:
   deploy:
@@ -13,15 +11,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Debug SSH Key (check length only)
+      - name: Debug SSH key length (secret có đang rỗng không)
         run: |
           echo "Key length: $(echo "${{ secrets.SERVER_SSH_KEY }}" | wc -c)"
-          echo "First line:"
-          echo "${{ secrets.SERVER_SSH_KEY }}" | head -n 1
-          echo "Last line:"
-          echo "${{ secrets.SERVER_SSH_KEY }}" | tail -n 1
+          echo "First line:"; echo "${{ secrets.SERVER_SSH_KEY }}" | head -n 1
+          echo "Last line:";  echo "${{ secrets.SERVER_SSH_KEY }}" | tail -n 1
 
-      - name: Deploy via SSH
+      - name: Raw SSH test (bỏ qua action để test secret)
+        run: |
+          echo "${{ secrets.SERVER_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo ✅ OK from server"
+
+      - name: Deploy via SSH (appleboy)
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SERVER_HOST }}
