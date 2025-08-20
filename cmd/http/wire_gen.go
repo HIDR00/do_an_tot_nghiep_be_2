@@ -7,9 +7,12 @@
 package main
 
 import (
+	app_version2 "mono-base/cmd/http/controllers/app_version"
 	user3 "mono-base/cmd/http/controllers/user"
 	"mono-base/internal/infrastructure/database/postgres"
+	"mono-base/internal/infrastructure/database/repository_impl"
 	"mono-base/internal/services/user"
+	"mono-base/internal/usecases/app_version"
 	user2 "mono-base/internal/usecases/user"
 )
 
@@ -26,6 +29,9 @@ func wireApp(app *App) error {
 	loginUseCase := user2.NewLoginUseCase(authService, userRepository)
 	controllerV1 := user3.NewUserControllerV1(loginUseCase)
 	controllerV2 := user3.NewUserControllerV2(loginUseCase)
-	error2 := inject(app, controllerV1, controllerV2)
+	appVersionRepository := repository_impl.NewAppVersionRepository(db)
+	getListAppVersionUseCase := app_version.NewGetListAppVersionUseCase(appVersionRepository)
+	app_versionControllerV1 := app_version2.NewStoryControllerV1(getListAppVersionUseCase)
+	error2 := inject(app, controllerV1, controllerV2, app_versionControllerV1)
 	return error2
 }
