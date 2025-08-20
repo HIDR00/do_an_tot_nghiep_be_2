@@ -1,35 +1,24 @@
 name: Deploy Go Backend to Windows Server
 
 on:
-  pull_request_target:
-    branches: [staging]
-    types: [closed]
+  pull_request:
+    branches:
+      - staging  # Chỉ kích hoạt khi PR merge vào nhánh staging
+    types:
+      - closed  # Chạy khi PR bị đóng (merge thành công)
 
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true  # Chỉ chạy nếu PR đã được merge
+    runs-on: ubuntu-latest  # Chạy trên môi trường Ubuntu
 
     steps:
-      - name: Debug SSH key length (secret có đang rỗng không)
-        run: |
-          echo "Key length: $(echo "${{ secrets.SERVER_SSH_KEY }}" | wc -c)"
-          echo "First line:"; echo "${{ secrets.SERVER_SSH_KEY }}" | head -n 1
-          echo "Last line:";  echo "${{ secrets.SERVER_SSH_KEY }}" | tail -n 1
-
-      - name: Raw SSH test (bỏ qua action để test secret)
-        run: |
-          echo "${{ secrets.SERVER_SSH_KEY }}" > key.pem
-          chmod 600 key.pem
-          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo ✅ OK from server"
-
-      - name: Deploy via SSH (appleboy)
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v0.1.6  # Sử dụng action SSH để kết nối tới server Windows
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: 22
+          host: ${{ secrets.SERVER_HOST }}  # Địa chỉ server (lấy từ GitHub Secrets)
+          username: ${{ secrets.SERVER_USER }}  # Tên người dùng SSH (lấy từ GitHub Secrets)
+          key: ${{ secrets.SERVER_SSH_KEY }}  # SSH private key để đăng nhập (lấy từ GitHub Secrets)
+          port: 22  # Cổng mặc định cho SSH
           script: |
-            echo "✅ SSH connected!"
             bash /usr/local/bin/deploy_mini.sh
