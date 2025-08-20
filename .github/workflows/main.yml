@@ -1,0 +1,24 @@
+name: Deploy Go Backend to Windows Server
+
+on:
+  pull_request:
+    branches:
+      - staging  # Chỉ kích hoạt khi PR merge vào nhánh staging
+    types:
+      - closed  # Chạy khi PR bị đóng (merge thành công)
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true  # Chỉ chạy nếu PR đã được merge
+    runs-on: ubuntu-latest  # Chạy trên môi trường Ubuntu
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v0.1.6  # Sử dụng action SSH để kết nối tới server Windows
+        with:
+          host: ${{ secrets.SERVER_HOST }}  # Địa chỉ server (lấy từ GitHub Secrets)
+          username: ${{ secrets.SERVER_USER }}  # Tên người dùng SSH (lấy từ GitHub Secrets)
+          key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}  # SSH private key để đăng nhập (lấy từ GitHub Secrets)
+          port: 22  # Cổng mặc định cho SSH
+          script: |
+            bash /usr/local/bin/deploy_mini.sh
